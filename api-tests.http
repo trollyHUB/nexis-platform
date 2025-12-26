@@ -1,0 +1,137 @@
+### Identity & Social API - HTTP Client Tests
+### Используй это в IntelliJ IDEA (Run запросы кнопкой ▶️)
+
+### ===== ПУБЛИЧНЫЕ ENDPOINTS =====
+
+### 1. Главная страница API
+GET http://localhost:8082/
+Accept: application/json
+
+###
+
+### 2. Health Check
+GET http://localhost:8082/api/public/health
+Accept: application/json
+
+###
+
+### 3. Проверка доступности username
+GET http://localhost:8082/api/auth/check-username?username=testuser
+Accept: application/json
+
+###
+
+### 4. Проверка доступности email
+GET http://localhost:8082/api/auth/check-email?email=test@example.com
+Accept: application/json
+
+###
+
+### ===== РЕГИСТРАЦИЯ =====
+
+### 5. Регистрация нового пользователя
+POST http://localhost:8082/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "Password123",
+  "firstName": "Test",
+  "lastName": "User"
+}
+
+###
+
+### ===== ЛОГИН =====
+
+### 6. Логин (по username)
+POST http://localhost:8082/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "testuser",
+  "password": "Password123"
+}
+
+###
+
+### 7. Логин как админ
+POST http://localhost:8082/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "admin",
+  "password": "Admin123!"
+}
+
+###
+
+### ===== ЗАЩИЩЁННЫЕ ENDPOINTS (требуют JWT) =====
+### Скопируй accessToken из ответа логина и вставь ниже
+
+### 8. Получить текущего пользователя
+GET http://localhost:8082/api/auth/me
+Accept: application/json
+Authorization: Bearer ВСТАВЬ_ТОКЕН_СЮДА
+
+###
+
+### 9. Обновить токены
+POST http://localhost:8082/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "ВСТАВЬ_REFRESH_TOKEN_СЮДА"
+}
+
+###
+
+### 10. Выход (отзыв refresh token)
+POST http://localhost:8082/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "ВСТАВЬ_REFRESH_TOKEN_СЮДА"
+}
+
+###
+
+### 11. Выход со всех устройств (требует JWT)
+POST http://localhost:8082/api/auth/logout-all
+Accept: application/json
+Authorization: Bearer ВСТАВЬ_ТОКЕН_СЮДА
+
+###
+
+### ===== ТЕСТЫ ОШИБОК =====
+
+### 12. Регистрация с коротким паролем (должна быть ошибка)
+POST http://localhost:8082/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "baduser",
+  "email": "bad@example.com",
+  "password": "123"
+}
+
+###
+
+### 13. Логин с неверным паролем
+POST http://localhost:8082/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "testuser",
+  "password": "wrongpassword"
+}
+
+###
+
+### 14. Доступ без токена (должно быть 401)
+GET http://localhost:8082/api/auth/me
+Accept: application/json
+
+###
+
