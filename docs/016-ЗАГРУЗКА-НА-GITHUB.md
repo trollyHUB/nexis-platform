@@ -74,10 +74,20 @@ Created: December 26, 2025
 ```
 
 ### Topics (теги):
+Добавляй **по одному** (Enter после каждого):
 ```
-react, typescript, kotlin, spring-boot, postgresql, jwt, authentication, 
-social-network, tailwindcss, vite, full-stack, dark-theme
+react
+typescript
+kotlin
+spring-boot
+postgresql
+jwt
+authentication
+social-network
+tailwindcss
+vite
 ```
+⚠️ Без запятых! Каждый тег отдельно!
 
 ---
 
