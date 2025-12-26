@@ -74,20 +74,24 @@ Created: December 26, 2025
 ```
 
 ### Topics (теги):
+⚠️ **ВАЖНО:** Topics должны начинаться с маленькой буквы и быть короче 50 символов!
+
 Добавляй **по одному** (Enter после каждого):
 ```
 react
 typescript
 kotlin
-spring-boot
+springboot
 postgresql
 jwt
 authentication
-social-network
+social-platform
 tailwindcss
 vite
+rest-api
+fullstack
 ```
-⚠️ Без запятых! Каждый тег отдельно!
+⚠️ Без запятых! Каждый тег отдельно! `spring-boot` → `springboot` (без дефиса!)
 
 ---
 

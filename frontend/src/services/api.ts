@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AuthResponse, LoginRequest, RegisterRequest, User } from '../types';
 
-const API_URL = 'http://localhost:8083/api';
+const API_URL = 'http://localhost:8082/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -15,6 +15,34 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Types для постов
+export interface Post {
+  uuid: string;
+  content: string;
+  imageUrl: string | null;
+  author: User;
+  likesCount: number;
+  commentsCount: number;
+  isLikedByMe: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreatePostRequest {
+  content: string;
+  imageUrl?: string | null;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  totalElements: number;
+  totalPages: number;
+}
 
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
@@ -68,6 +96,42 @@ export const authService = {
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('accessToken');
+  },
+};
+
+// Posts API
+export const postsService = {
+  async getFeed(page = 0, size = 20): Promise<PageResponse<Post>> {
+    const response = await api.get<PageResponse<Post>>('/posts/feed', {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  async createPost(data: CreatePostRequest): Promise<Post> {
+    const response = await api.post<Post>('/posts', data);
+    return response.data;
+  },
+
+  async getPost(uuid: string): Promise<Post> {
+    const response = await api.get<Post>(`/posts/${uuid}`);
+    return response.data;
+  },
+
+  async getUserPosts(userUuid: string, page = 0, size = 20): Promise<PageResponse<Post>> {
+    const response = await api.get<PageResponse<Post>>(`/posts/user/${userUuid}`, {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  async likePost(uuid: string): Promise<{ liked: boolean; likesCount: number }> {
+    const response = await api.post<{ liked: boolean; likesCount: number }>(`/posts/${uuid}/like`);
+    return response.data;
+  },
+
+  async deletePost(uuid: string): Promise<void> {
+    await api.delete(`/posts/${uuid}`);
   },
 };
 

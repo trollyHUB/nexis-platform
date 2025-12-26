@@ -3,18 +3,23 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useState } from 'react';
 
-// Pages
-import HomePage from './pages/HomePage';
+// Pages - Public
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+
+// Pages - Dashboard
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import NotificationsPage from './pages/NotificationsPage';
-import MessagesPage from './pages/MessagesPage';
+import BookmarksPage from './pages/BookmarksPage';
+
+// Pages - Connect (Social)
 import FeedPage from './pages/FeedPage';
 import ExplorePage from './pages/ExplorePage';
+import MessagesPage from './pages/MessagesPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 // Layout components
 import Sidebar from './components/layout/Sidebar';
@@ -45,8 +50,10 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 // Main layout with sidebar and header
 function DashboardLayout() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved === 'true';
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,28 +64,23 @@ function DashboardLayout() {
       />
 
       {/* Main content area */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+      <div
+        className="transition-all duration-300"
+        style={{ marginLeft: sidebarCollapsed ? '60px' : '260px' }}
+      >
         {/* Header */}
-        <Header onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />
+        <Header />
 
         {/* Page content */}
         <main className="min-h-[calc(100vh-4rem)]">
           <Outlet />
         </main>
       </div>
-
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
     </div>
   );
 }
 
-// Auth pages layout (clean, no sidebar)
+// Auth pages layout
 function AuthLayout() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -87,52 +89,14 @@ function AuthLayout() {
   );
 }
 
-function AppRoutes() {
-  return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<HomePage />} />
-
-      {/* Auth routes */}
-      <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      </Route>
-
-      {/* Protected routes with dashboard layout */}
-      <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/feed" element={<FeedPage />} />
-        <Route path="/explore" element={<ExplorePage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/messages" element={<MessagesPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-
-        {/* Workspace */}
-        <Route path="/workspace" element={<ComingSoon title="Проекты" icon="📁" />} />
-        <Route path="/cloud" element={<ComingSoon title="Облако" icon="☁️" />} />
-        <Route path="/analytics" element={<ComingSoon title="Аналитика" icon="📊" />} />
-
-        {/* Developer */}
-        <Route path="/developer" element={<ComingSoon title="Разработчикам" icon="🔧" />} />
-      </Route>
-
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
-  );
-}
-
 // Coming Soon placeholder
-function ComingSoon({ title, icon }: { title: string; icon: string }) {
+function ComingSoon({ title, icon, description }: { title: string; icon: string; description?: string }) {
   return (
     <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-      <div className="text-center">
+      <div className="text-center max-w-md mx-auto p-6">
         <div className="text-6xl mb-4">{icon}</div>
         <h1 className="text-2xl font-bold text-text-primary">{title}</h1>
-        <p className="text-text-secondary mt-2">Эта страница в разработке</p>
+        <p className="text-text-secondary mt-2">{description || 'Эта страница в разработке'}</p>
         <div className="mt-6 flex items-center justify-center gap-2">
           <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
           <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -143,6 +107,48 @@ function ComingSoon({ title, icon }: { title: string; icon: string }) {
   );
 }
 
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public Landing */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* Auth routes */}
+      <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      </Route>
+
+      {/* Protected routes with dashboard layout */}
+      <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
+        {/* Main Dashboard */}
+        <Route path="/dashboard" element={<DashboardPage />} />
+
+        {/* Connect Module (Social) */}
+        <Route path="/connect/feed" element={<FeedPage />} />
+        <Route path="/connect/explore" element={<ExplorePage />} />
+        <Route path="/connect/messages" element={<MessagesPage />} />
+        <Route path="/connect/notifications" element={<NotificationsPage />} />
+
+        {/* Legacy routes (redirect to new paths) */}
+        <Route path="/feed" element={<Navigate to="/connect/feed" replace />} />
+        <Route path="/explore" element={<Navigate to="/connect/explore" replace />} />
+        <Route path="/messages" element={<Navigate to="/connect/messages" replace />} />
+        <Route path="/notifications" element={<Navigate to="/connect/notifications" replace />} />
+
+        {/* Account */}
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/bookmarks" element={<BookmarksPage />} />
+        <Route path="/security" element={<ComingSoon title="Безопасность" icon="🛡️" description="Настройки безопасности аккаунта" />} />
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
 
 export default function App() {
   return (
@@ -155,3 +161,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
