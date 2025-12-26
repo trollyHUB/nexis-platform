@@ -74,5 +74,29 @@ interface UserRepository : JpaRepository<User, Long> {
      */
     @Query("SELECT COUNT(u) FROM User u WHERE u.enabled = true")
     fun countActiveUsers(): Long
+
+    /**
+     * Поиск с пагинацией.
+     */
+    fun findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+        username: String,
+        email: String,
+        pageable: org.springframework.data.domain.Pageable
+    ): org.springframework.data.domain.Page<User>
+
+    /**
+     * Подсчёт активных пользователей.
+     */
+    fun countByEnabledTrue(): Long
+
+    /**
+     * Подсчёт забаненных пользователей.
+     */
+    fun countByIsBannedTrue(): Long
+
+    /**
+     * Подсчёт пользователей за период.
+     */
+    fun countByCreatedAtAfter(date: LocalDateTime): Long
 }
 

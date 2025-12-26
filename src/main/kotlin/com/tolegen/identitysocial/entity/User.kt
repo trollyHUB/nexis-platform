@@ -3,12 +3,13 @@ package com.tolegen.identitysocial.entity
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 
 /**
- * Основная сущность пользователя.
- * Используется для аутентификации и авторизации во всех сервисах экосистемы.
+ * Основная сущность пользователя NEXIS ID.
+ * Центральный модуль аутентификации и профиля для всей экосистемы.
  */
 @Entity
 @Table(
@@ -26,7 +27,6 @@ class User(
 
     /**
      * UUID для внешнего использования (API, межсервисное взаимодействие).
-     * Не раскрываем внутренний ID наружу - это безопаснее.
      */
     @Column(nullable = false, unique = true, updatable = false)
     val uuid: UUID = UUID.randomUUID(),
@@ -39,10 +39,11 @@ class User(
 
     /**
      * Пароль хранится в виде BCrypt хеша.
-     * Никогда не хранить в открытом виде!
      */
     @Column(nullable = false)
     var password: String,
+
+    // === Профиль ===
 
     @Column(length = 50)
     var firstName: String? = null,
@@ -50,42 +51,71 @@ class User(
     @Column(length = 50)
     var lastName: String? = null,
 
-    /**
-     * URL аватара пользователя.
-     * В будущем будет храниться в MyVault (MinIO).
-     */
     @Column(length = 500)
     var avatarUrl: String? = null,
 
-    /**
-     * Краткое описание профиля.
-     */
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     var bio: String? = null,
 
-    /**
-     * Подтверждён ли email.
-     */
+    @Column(length = 100)
+    var location: String? = null,
+
+    @Column(length = 255)
+    var website: String? = null,
+
+    @Column(length = 20)
+    var phone: String? = null,
+
+    var dateOfBirth: LocalDate? = null,
+
+    @Column(length = 20)
+    var gender: String? = null, // male, female, other, prefer_not_to_say
+
+    @Column(length = 10)
+    var language: String = "ru",
+
+    @Column(length = 50)
+    var timezone: String = "UTC",
+
+    // === Статус аккаунта ===
+
     @Column(nullable = false)
     var emailVerified: Boolean = false,
 
-    /**
-     * Активен ли аккаунт.
-     * Используется для soft-delete и бана.
-     */
     @Column(nullable = false)
     var enabled: Boolean = true,
 
-    /**
-     * Заблокирован ли аккаунт (например, за нарушения).
-     */
     @Column(nullable = false)
     var locked: Boolean = false,
 
-    /**
-     * Роли пользователя.
-     * Связь многие-ко-многим.
-     */
+    @Column(nullable = false)
+    var isBanned: Boolean = false,
+
+    var bannedAt: LocalDateTime? = null,
+
+    @Column(columnDefinition = "TEXT")
+    var banReason: String? = null,
+
+    // === Безопасность ===
+
+    @Column(nullable = false)
+    var twoFactorEnabled: Boolean = false,
+
+    @Column(length = 255)
+    var twoFactorSecret: String? = null,
+
+    var lastPasswordChange: LocalDateTime? = null,
+
+    // === Хранилище ===
+
+    @Column(nullable = false)
+    var storageUsedBytes: Long = 0,
+
+    @Column(nullable = false)
+    var storageLimitBytes: Long = 10737418240, // 10 GB по умолчанию
+
+    // === Роли ===
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "user_roles",
@@ -93,6 +123,8 @@ class User(
         inverseJoinColumns = [JoinColumn(name = "role_id")]
     )
     var roles: MutableSet<Role> = mutableSetOf(),
+
+    // === Timestamps ===
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -102,9 +134,6 @@ class User(
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 
-    /**
-     * Последний вход в систему.
-     */
     var lastLoginAt: LocalDateTime? = null
 ) {
     /**
@@ -114,14 +143,71 @@ class User(
         get() = listOfNotNull(firstName, lastName).joinToString(" ").ifEmpty { username }
 
     /**
-     * Проверка, есть ли роль у пользователя.
+     * Использовано хранилища в процентах.
+     */
+    val storageUsedPercent: Double
+        get() = if (storageLimitBytes > 0) (storageUsedBytes.toDouble() / storageLimitBytes * 100) else 0.0
+
+    /**
+     * Использовано хранилища в человекочитаемом формате.
+     */
+    val storageUsedFormatted: String
+        get() = formatBytes(storageUsedBytes)
+
+    val storageLimitFormatted: String
+        get() = formatBytes(storageLimitBytes)
+
+    private fun formatBytes(bytes: Long): String {
+        return when {
+            bytes >= 1073741824 -> "%.1f GB".format(bytes / 1073741824.0)
+            bytes >= 1048576 -> "%.1f MB".format(bytes / 1048576.0)
+            bytes >= 1024 -> "%.1f KB".format(bytes / 1024.0)
+            else -> "$bytes B"
+        }
+    }
+
+    /**
+     * Проверка роли.
      */
     fun hasRole(roleName: String): Boolean = roles.any { it.name == roleName }
 
     /**
-     * Проверка, является ли пользователь администратором.
+     * Проверка нескольких ролей (любая из).
      */
-    fun isAdmin(): Boolean = hasRole("ROLE_ADMIN")
+    fun hasAnyRole(vararg roleNames: String): Boolean = roleNames.any { hasRole(it) }
+
+    /**
+     * Проверка административных прав.
+     */
+    fun isAdmin(): Boolean = hasAnyRole("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
+    fun isSuperAdmin(): Boolean = hasRole("ROLE_SUPER_ADMIN")
+
+    fun isModerator(): Boolean = hasAnyRole("ROLE_MODERATOR", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
+    fun isDeveloper(): Boolean = hasAnyRole("ROLE_DEVELOPER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
+    fun isPremium(): Boolean = hasAnyRole("ROLE_PREMIUM", "ROLE_DEVELOPER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
+    /**
+     * Получить наивысшую роль.
+     */
+    fun getHighestRole(): String {
+        return when {
+            hasRole("ROLE_SUPER_ADMIN") -> "Super Admin"
+            hasRole("ROLE_ADMIN") -> "Admin"
+            hasRole("ROLE_MODERATOR") -> "Moderator"
+            hasRole("ROLE_DEVELOPER") -> "Developer"
+            hasRole("ROLE_PREMIUM") -> "Premium"
+            hasRole("ROLE_USER") -> "User"
+            else -> "Guest"
+        }
+    }
+
+    /**
+     * Можно ли пользователю войти.
+     */
+    fun canLogin(): Boolean = enabled && !locked && !isBanned
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
