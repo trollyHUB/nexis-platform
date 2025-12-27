@@ -57,7 +57,7 @@ class SecurityConfig(
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
                     // Health check
-                    .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers("/actuator/health", "/api/health").permitAll()
 
                     // Статические ресурсы
                     .requestMatchers("/", "/index.html", "/static/**", "/favicon.ico").permitAll()
@@ -114,9 +114,9 @@ class SecurityConfig(
      */
     @Bean
     fun authenticationProvider(): AuthenticationProvider {
-        val authProvider = DaoAuthenticationProvider(userDetailsService)
-        authProvider.setPasswordEncoder(passwordEncoder())
-        return authProvider
+        val provider = DaoAuthenticationProvider(userDetailsService)
+        provider.setPasswordEncoder(passwordEncoder())
+        return provider
     }
 
     /**

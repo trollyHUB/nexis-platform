@@ -29,8 +29,8 @@ class Role(
     val description: String? = null,
 
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    @Column(updatable = false)
+    val createdAt: LocalDateTime? = null
 ) {
     companion object {
         const val USER = "ROLE_USER"

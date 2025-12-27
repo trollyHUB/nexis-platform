@@ -1,0 +1,39 @@
+# Build outputs
+build/
+out/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend (сборка отдельно)
+frontend/node_modules/
+frontend/dist/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Git
+.git/
+.gitignore
+
+# Документация
+docs/
+*.md
+
+# Тесты
+src/test/
+

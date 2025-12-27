@@ -1,24 +1,86 @@
+# ========================================
+# NEXIS PLATFORM - DOCKER COMPOSE
+# ========================================
+# Использует локальную PostgreSQL 16 (порт 5434)
+# Дата обновления: 26.12.2025
+# ========================================
+
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: identity-social-db
-    restart: always
-    environment:
-      POSTGRES_DB: identity_social_db
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
+  # ========================================
+  # NEXIS BACKEND (Spring Boot)
+  # ========================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexis-backend
+    restart: unless-stopped
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "8082:8082"
+    environment:
+      # Подключение к ЛОКАЛЬНОЙ PostgreSQL 16 (на хосте)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5434/nexis_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production-must-be-at-least-256-bits-long-for-hs256
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: []
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d identity_social_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "curl", "-f", "http://localhost:8082/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-volumes:
-  postgres_data:
+  # ========================================
+  # NEXIS FRONTEND (React + Vite)
+  # ========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexis-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8082
+
+# ========================================
+# РЕЗЕРВНЫЙ ВАРИАНТ - Docker PostgreSQL
+# ========================================
+# Если нужно использовать PostgreSQL внутри Docker:
+# 1. Раскомментировать сервис postgres ниже
+# 2. Изменить SPRING_DATASOURCE_URL на:
+#    jdbc:postgresql://postgres:5432/nexis_db
+# 3. Добавить depends_on: postgres в backend
+# ========================================
+
+#  postgres:
+#    image: postgres:16-alpine
+#    container_name: nexis-db-docker
+#    restart: always
+#    environment:
+#      POSTGRES_DB: nexis_db
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: 1234
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U postgres -d nexis_db"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+
+#volumes:
+#  postgres_data:
 

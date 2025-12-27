@@ -37,10 +37,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_password_change TIMESTAMP;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS storage_used_bytes BIGINT DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS storage_limit_bytes BIGINT DEFAULT 10737418240; -- 10 GB default
 
--- Таблица сессий пользователя
+-- Таблица сессий пользователя (используем BIGINT для user_id)
 CREATE TABLE IF NOT EXISTS user_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash VARCHAR(255) NOT NULL,
     device_info VARCHAR(255),
     ip_address VARCHAR(45),
@@ -58,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_user_sessions_token_hash ON user_sessions(token_h
 -- Таблица истории входов
 CREATE TABLE IF NOT EXISTS login_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     ip_address VARCHAR(45),
     user_agent TEXT,
     location VARCHAR(100),
@@ -73,7 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_login_history_created_at ON login_history(created
 -- Таблица уведомлений
 CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL, -- 'like', 'comment', 'follow', 'mention', 'system'
     title VARCHAR(255) NOT NULL,
     message TEXT,
@@ -89,8 +89,8 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 -- Таблица подписок (followers)
 CREATE TABLE IF NOT EXISTS follows (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    following_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    follower_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    following_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(follower_id, following_id)
 );
@@ -101,7 +101,7 @@ CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
 -- Обновляем суперадмина если admin существует
 UPDATE users SET email_verified = TRUE WHERE username = 'admin';
 
--- Добавляем роль SUPER_ADMIN админу
+-- Добавляем роль SUPER_ADMIN админу (если существует)
 INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM users u, roles r
